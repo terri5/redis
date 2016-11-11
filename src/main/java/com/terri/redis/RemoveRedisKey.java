@@ -36,6 +36,9 @@ public class RemoveRedisKey {
     private static String redis_host = "";
     private static String redis_port = "";
     private static String redis_auth = "";
+    private static String redis_his_host = "";
+    private static String redis_his_port = "";
+    private static String redis_his_auth = "";
     private static String timeout = "";
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
     private static final String TODAY = sdf.format(Calendar.getInstance().getTime());
@@ -52,17 +55,17 @@ public class RemoveRedisKey {
     public static void main(String[] args) throws InterruptedException {
         //  loadConf("redis.properties");
         loadResources("redis.properties");
-        jedis_his = new Jedis("busgzredis.redis.cache.chinacloudapi.cn", 6379, 1000000);
-        jedis_his.auth("FrizabZ4pJ9/bY03Jp/4s7WyEujfv1FBryakLhiyVYA=");
+        jedis_his = new Jedis(redis_his_host, Integer.parseInt(redis_his_port), Integer.parseInt(timeout));
+        jedis_his.auth(redis_his_auth);
         jedis = new Jedis(redis_host, Integer.parseInt(redis_port), Integer.parseInt(timeout));
         jedis.auth(redis_auth);
         jedis_his.select(2);
-        RemoveAllKey("20160920",jedis_his);
-       // loadHisUser();
+        RemoveAllKey("20160920", jedis_his);
+        // loadHisUser();
         //  jedis.select(2);
-       // cutNewUrlSet("201610923",jedis_his);
+        // cutNewUrlSet("201610923",jedis_his);
         //statisticsHash("20161024", "bus");
-       //  RemoveAllKey();
+        //  RemoveAllKey();
         /*
         if (args.length == 2) {
             if (args[0].equals("del") && args[1].matches("[0-9]{8}")) {
@@ -98,33 +101,33 @@ public class RemoveRedisKey {
         String lastProv = "";
         List<String> ka = new ArrayList<>();
         ka.addAll(keys);
-        ka.sort((String k1,String k2)->{
-            if(k1.startsWith("his:bus")){
-                if(k2.startsWith("his:bus")){
-                    String[] a1=k1.split(":");
-                    String[] a2=k2.split(":");
-                  if(Integer.parseInt(a1[4])!=Integer.parseInt(a2[4])){
-                      return Integer.parseInt(a1[4])-Integer.parseInt(a2[4]);
-                  }else{
-                      return Integer.parseInt(a1[5])-Integer.parseInt(a2[5]);
-                  }
+        ka.sort((String k1, String k2) -> {
+            if (k1.startsWith("his:bus")) {
+                if (k2.startsWith("his:bus")) {
+                    String[] a1 = k1.split(":");
+                    String[] a2 = k2.split(":");
+                    if (Integer.parseInt(a1[4]) != Integer.parseInt(a2[4])) {
+                        return Integer.parseInt(a1[4]) - Integer.parseInt(a2[4]);
+                    } else {
+                        return Integer.parseInt(a1[5]) - Integer.parseInt(a2[5]);
+                    }
                 }
-                
-                return -1;          
-            }else{
-            if(k2.startsWith("his:train")){
-                    String[] a1=k1.split(":");
-                    String[] a2=k2.split(":");
-              if(Integer.parseInt(a1[5])!=Integer.parseInt(a2[5])){
-                      return Integer.parseInt(a1[5])-Integer.parseInt(a2[5]);
-                  }else if(Integer.parseInt(a1[6])!=Integer.parseInt(a2[6])){
-                      return Integer.parseInt(a1[6])-Integer.parseInt(a2[6]);
-                  }else{  
-                       return Integer.parseInt(a1[4])-Integer.parseInt(a2[4]);
-                  }
+
+                return -1;
+            } else {
+                if (k2.startsWith("his:train")) {
+                    String[] a1 = k1.split(":");
+                    String[] a2 = k2.split(":");
+                    if (Integer.parseInt(a1[5]) != Integer.parseInt(a2[5])) {
+                        return Integer.parseInt(a1[5]) - Integer.parseInt(a2[5]);
+                    } else if (Integer.parseInt(a1[6]) != Integer.parseInt(a2[6])) {
+                        return Integer.parseInt(a1[6]) - Integer.parseInt(a2[6]);
+                    } else {
+                        return Integer.parseInt(a1[4]) - Integer.parseInt(a2[4]);
+                    }
+                }
+                return 1;
             }
-          return 1;
-        }
 
         });
         Set<String> city = new HashSet<>();
@@ -139,7 +142,7 @@ public class RemoveRedisKey {
         System.out.println(LocalTime.now());
         for (int i = 0; i < ka.size(); i++) {
             String[] a = ka.get(i).split(":");
-            
+
             if (a.length < 6) {
                 jedis_his.del(ka.get(i));
                 continue;
@@ -186,7 +189,7 @@ public class RemoveRedisKey {
                     data.put("train_che_" + lastL + "_" + lastC, jedis_his.zcard(pk));
                     st.clear();
                     sc.add(pk);
-                    
+
                     b = new String[sc.size()]; //计算旧路局
                     pk = "his:train:Lu:" + lastL;
                     jedis_his.zunionstore(pk, sc.toArray(b));
@@ -240,7 +243,7 @@ public class RemoveRedisKey {
 
     }
 
-    public static void RemoveAllKey(String day_id,Jedis jedis) {
+    public static void RemoveAllKey(String day_id, Jedis jedis) {
         Set<String> s = jedis.keys("wifilog:train:*:" + day_id + "*");
         int i = 0;
         Pipeline p = jedis.pipelined();
@@ -265,8 +268,6 @@ public class RemoveRedisKey {
         }
         p.sync();
     }
-
-   
 
     public static void statisticsHash(String day_id, String dt) {
         String key_1p = "wifilog:" + dt + ":v1:*:" + day_id;
@@ -345,12 +346,12 @@ public class RemoveRedisKey {
 
     }
 
-    public static void cutNewUrlSet(String day_id,Jedis jedis) {
-        cutNewUrlSet(day_id, "train",jedis);
-        cutNewUrlSet(day_id, "bus",jedis);
+    public static void cutNewUrlSet(String day_id, Jedis jedis) {
+        cutNewUrlSet(day_id, "train", jedis);
+        cutNewUrlSet(day_id, "bus", jedis);
     }
 
-    public static void cutNewUrlSet(String day_id, String dt,Jedis jedis) {
+    public static void cutNewUrlSet(String day_id, String dt, Jedis jedis) {
         if (TODAY.startsWith(day_id)) {
             throw new RuntimeException("非法的参数" + day_id + "，不允许裁剪当天的数据");
         }
@@ -435,8 +436,8 @@ public class RemoveRedisKey {
         }
 
     }
-    
-     private static boolean isNewFinished(String val) {
+
+    private static boolean isNewFinished(String val) {
         String str;
         str = val;
         // 只允数字  
@@ -512,7 +513,7 @@ public class RemoveRedisKey {
         keys.stream().forEach((String key) -> {
             String str = jedis.get(key);
             String day = key.substring(key.length() - 8);//获取日期 day_id,并进行清理
-         //   cutUrlSet(day);
+            //   cutUrlSet(day);
             days.add(day);
             if (isNewFinished(str)) {
                 new_days_finished.add(day);
@@ -534,7 +535,5 @@ public class RemoveRedisKey {
             SendMail.send(m);
         }
     }
-
-   
 
 }
