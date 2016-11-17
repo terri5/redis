@@ -17,7 +17,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Get;
@@ -69,6 +71,32 @@ public class HbaseUtil {
         for (Result r : rs) {
             System.out.println("Scan: " + r);
 
+        }
+    }
+
+     public static void splitTable(String tableName, String... splits) throws InterruptedException,
+            IOException {
+        // split table
+        if (null != splits && splits.length > 0) {
+            // wait for the table settle down
+            Thread.sleep(6000);
+            Admin admin = connection.getAdmin();
+            TableName table = TableName.valueOf(tableName);
+            List<HRegionInfo> regions = null;
+            for (int a = 0; a < splits.length; a++) {
+                admin.split(table, Bytes.toBytes(splits[a]));
+                Thread.sleep(6000);
+
+                regions = admin.getTableRegions(table);
+                for (HRegionInfo region : regions) {
+                    while (region.isOffline()) {
+                        // wait region online
+                    }
+                    System.out.println("region:" + region);
+                    System.out.println("startKey:" + Bytes.toString(region.getStartKey()));
+                    System.out.println("endKey:" + Bytes.toString(region.getEndKey()));
+                }
+            }
         }
     }
 }
