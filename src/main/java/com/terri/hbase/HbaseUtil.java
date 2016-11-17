@@ -97,6 +97,7 @@ public class HbaseUtil {
                     System.out.println("endKey:" + Bytes.toString(region.getEndKey()));
                 }
             }
+            admin.balancer();
         }
     }
 }
